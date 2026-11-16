@@ -24,14 +24,14 @@ function convert(pdf) {
     fs.mkdirSync(outDir); fs.writeFileSync(inp, pdf);
     const clean = () => fs.rm(dir, { recursive: true, force: true }, () => {});
     const p = spawn(BIN, [...ARGS, '-output', outDir, inp], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let log = ''; p.stdout.on('data', d => log += d); p.stderr.on('data', d => log += d);
+    console.log('[omr] mulai pdf=' + pdf.length + ' bytes args=' + ARGS.join(' ')); let log = ''; p.stdout.on('data', d => log += d); p.stderr.on('data', d => log += d);
     const t = setTimeout(() => { p.kill('SIGKILL'); clean(); reject({ code: 504, msg: 'Konversi terlalu lama (batas ' + TIMEOUT / 1000 + ' detik)' }); }, TIMEOUT);
     p.on('error', e => { clearTimeout(t); clean(); reject({ code: 500, msg: 'Audiveris tidak bisa dijalankan: ' + e.message }); });
     p.on('close', code => {
       clearTimeout(t);
       const f = fs.existsSync(outDir) && findOut(outDir);
       if (!f) { clean(); return reject({ code: 422, msg: 'Audiveris tidak menghasilkan MusicXML (kode ' + code + '). PDF mungkin hasil scan buram atau bukan not balok.\n' + log.slice(-300) }); }
-      const data = fs.readFileSync(f); clean(); resolve(data);
+      const data = fs.readFileSync(f); console.log('[omr] selesai kode=' + code + ' file=' + path.basename(f) + ' bytes=' + data.length + '\n' + log.slice(-3000)); clean(); resolve(data);
     });
   });
 }
