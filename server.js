@@ -31,10 +31,19 @@ function convert(pdf) {
       clearTimeout(t);
       const f = fs.existsSync(outDir) && findOut(outDir);
       if (!f) { clean(); return reject({ code: 422, msg: 'Audiveris tidak menghasilkan MusicXML (kode ' + code + '). PDF mungkin hasil scan buram atau bukan not balok.\n' + log.slice(-300) }); }
-      const data = fs.readFileSync(f); console.log('[omr] selesai kode=' + code + ' file=' + path.basename(f) + ' bytes=' + data.length + '\n' + log.slice(-3000)); clean(); resolve(data);
+      const data = fs.readFileSync(f); const warn = log.split('\n').filter(l => /WARN|ERROR|Exception|tesseract|tessdata|OCR|language/i.test(l)).slice(0, 80).join('\n');
+      console.log('[omr] selesai kode=' + code + ' file=' + path.basename(f) + ' bytes=' + data.length + '\n--- WARN/ERROR ---\n' + warn + '\n--- AKHIR ---\n' + log.slice(-2000)); clean(); resolve(data);
     });
   });
 }
+// Diagnosis saat start: pastikan Tesseract dan data bahasa 'eng' terbaca.
+try {
+  const { execSync } = require('child_process');
+  const sh = c => { try { return execSync(c, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); } catch (e) { return 'GAGAL: ' + (e.stderr || e.message).toString().trim(); } };
+  console.log('[diag] TESSDATA_PREFIX=' + process.env.TESSDATA_PREFIX);
+  console.log('[diag] tesseract --list-langs: ' + sh('tesseract --list-langs'));
+  console.log('[diag] cari eng.traineddata: ' + sh('find / -name "eng.traineddata" 2>/dev/null'));
+} catch (e) { console.log('[diag] ' + e.message); }
 http.createServer((req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, '');
   if (req.method === 'GET' && req.url === '/health') return send(res, 200, 'ok');
