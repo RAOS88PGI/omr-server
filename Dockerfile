@@ -11,8 +11,10 @@ RUN mkdir -p /opt/audiveris && tar -xf app/build/distributions/*.tar -C /opt/aud
 FROM eclipse-temurin:25-jre
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs tesseract-ocr tesseract-ocr-eng fontconfig libfreetype6 && rm -rf /var/lib/apt/lists/*
 COPY --from=build /opt/audiveris /opt/audiveris
+# Audiveris minta Tesseract mode legacy; paket Debian/Ubuntu hanya LSTM. Pakai eng.traineddata resmi (legacy + LSTM).
+ADD https://github.com/tesseract-ocr/tessdata/raw/4.1.0/eng.traineddata /opt/tessdata/eng.traineddata
 WORKDIR /app
 COPY server.js .
-ENV AUDIVERIS_BIN=/opt/audiveris/bin/Audiveris PORT=8080 JAVA_OPTS="-Xmx1500m -Djava.awt.headless=true" TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+ENV AUDIVERIS_BIN=/opt/audiveris/bin/Audiveris PORT=8080 JAVA_OPTS="-Xmx1500m -Djava.awt.headless=true" TESSDATA_PREFIX=/opt/tessdata
 EXPOSE 8080
 CMD ["node","server.js"]
